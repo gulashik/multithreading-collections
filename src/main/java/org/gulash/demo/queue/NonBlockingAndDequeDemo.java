@@ -52,21 +52,54 @@ public class NonBlockingAndDequeDemo {
      * Демонстрирует работу LinkedBlockingDeque как стека и как очереди.
      */
     public void demonstrateDeque() throws InterruptedException {
-        log.info("Demonstrating LinkedBlockingDeque...");
-        BlockingDeque<Integer> deque = new LinkedBlockingDeque<>(5);
+        log.info("Demonstrating LinkedBlockingDeque... Simple");
+        BlockingDeque<String> deque = new LinkedBlockingDeque<>(5);
 
         // Работаем как со стеком (LIFO)
         log.info("Using Deque as Stack (LIFO):");
-        deque.push(1);
-        deque.push(2);
+        deque.push("1");
+        deque.push("2");
         log.info("Popped: {}", deque.pop()); // 2
         log.info("Popped: {}", deque.pop()); // 1
 
         // Работаем как с очередью (FIFO)
         log.info("Using Deque as Queue (FIFO):");
-        deque.offerLast(10);
-        deque.offerLast(20);
+        deque.offerLast("10");
+        deque.offerLast("20");
         log.info("Took: {}", deque.takeFirst()); // 10
         log.info("Took: {}", deque.takeFirst()); // 20
+
+
+        log.info("Demonstrating LinkedBlockingDeque... Producer-Consumer");
+        // Producer: put() заблокируется если в очереди 5 элементов
+        Thread producer = new Thread(() -> {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    String task = "task-" + i;
+                    deque.put(task);             // блокирует если полна
+                    log.info("Produced: {}", task);
+                }
+                deque.put("STOP");              // сигнал завершения
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        // Consumer: take() заблокируется если очередь пуста
+        Thread consumer = new Thread(() -> {
+            try {
+                while (true) {
+                    String task = deque.take();   // блокирует если пуста
+                    if ("STOP".equals(task)) break;
+                    log.info("Consumed: {}", task);
+                    Thread.sleep(100);           // имитируем обработку
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        producer.start();
+        consumer.start();
     }
 }
